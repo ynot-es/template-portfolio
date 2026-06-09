@@ -101,16 +101,28 @@ class RAGPipeline:
                     "page": doc["page"],
                 })
 
-        # TODO 1.C — indexar no ChromaDB em batches com pausa para respeitar rate limit
-        BATCH = 50
+        # TODO 1.C — indexar no ChromaDB em batches respeitando rate limit do free tier
+        # Free tier: 100 req/min por modelo. Cada doc no batch = 1 request de embedding.
+        # Batch de 10 + sleep de 7s → ~85 req/min, abaixo do limite.
+        BATCH = 10
+        existing_ids = set(self.collection.get(include=[])["ids"])
         for start in range(0, len(chunks), BATCH):
-            batch = chunks[start : start + BATCH]
-            self.collection.add(
-                ids=[c["id"] for c in batch],
-                documents=[c["text"] for c in batch],
-                metadatas=[{"source": c["source"], "page": c["page"]} for c in batch],
-            )
-            time.sleep(6)  # free tier: 100 req/min → espera 6s entre batches de 50
+            batch = [c for c in chunks[start : start + BATCH] if c["id"] not in existing_ids]
+            if not batch:
+                continue
+            for attempt in range(3):
+                try:
+                    self.collection.add(
+                        ids=[c["id"] for c in batch],
+                        documents=[c["text"] for c in batch],
+                        metadatas=[{"source": c["source"], "page": c["page"]} for c in batch],
+                    )
+                    break
+                except Exception as e:
+                    if attempt == 2:
+                        raise
+                    time.sleep(15 * (attempt + 1))
+            time.sleep(7)
 
         return self.collection.count()
 
