@@ -27,42 +27,33 @@ def classify_complexity(query: str) -> RouteDecision:
     cheap_model = os.environ.get("CHEAP_MODEL", "gemini-2.5-flash-lite")
     premium_model = os.environ.get("PREMIUM_MODEL", "gemini-2.5-pro")
 
-    # SEU CODIGO AQUI — TODO 6
-    # Implemente heuristica simples para classificar a query como "simple" ou "complex".
-    # Sugestao de regras:
-    #   - len(query) < 60 e query termina em "?" → simple
-    #   - contem palavras como "explique", "compare", "analise", "projete" → complex
-    #   - default → simple
-    # Retorne RouteDecision(model=cheap_model OU premium_model, complexity=..., reason="por que")
-    # Dica: notebook 05, Etapa 5 — Model Routing.
-
+    # Palavras que indicam analise profunda de codigo — roteiam para modelo premium
     complex_keywords = {
-        "explique", "compare", "analise", "projete", "descreva",
-        "detalhe", "elabore", "diferencie", "justifique", "avalie",
+        "explique", "compare", "analise", "refatore", "otimize",
+        "vulnerabilidade", "diferencie", "justifique", "avalie", "reestruture",
     }
 
     query_lower = query.lower()
 
-    if any(word in query_lower for word in complex_keywords):
+    if any(kw in query_lower for kw in complex_keywords):
         return RouteDecision(
             model=premium_model,
             complexity="complex",
-            reason="query contem palavra de alta complexidade",
+            reason="query requer analise aprofundada de codigo",
         )
 
     if len(query) < 60 and query.strip().endswith("?"):
         return RouteDecision(
             model=cheap_model,
             complexity="simple",
-            reason="query curta e direta",
+            reason="query curta e objetiva",
         )
 
     return RouteDecision(
         model=cheap_model,
         complexity="simple",
-        reason="default: sem indicadores de complexidade",
+        reason="padrao: sem indicadores de complexidade",
     )
-    raise NotImplementedError("TODO 6: implementar classify_complexity()")
 
 
 def make_client() -> OpenAI:

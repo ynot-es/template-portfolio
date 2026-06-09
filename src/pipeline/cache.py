@@ -63,25 +63,15 @@ class SemanticCache:
         if not self._queries:
             return None
 
-        # SEU CODIGO AQUI — TODO 5
-        # 1. Embedar a query (self._embed)
-        # 2. Calcular similaridade cosseno contra todos self._embeddings:
-        #    cos_sim = np.dot(e, em) / (np.linalg.norm(e) * np.linalg.norm(em))
-        # 3. Pegar idx do maior; se sims[idx] >= self.threshold, retornar self._answers[idx]
-        # 4. Caso contrario, retornar None
-        # Dica: notebook 05, Etapa 4 — Semantic Cache.
-
-        e = self._embed(query)
-        sims = [
-            np.dot(e, em) / (np.linalg.norm(e) * np.linalg.norm(em))
-            for em in self._embeddings
+        query_vec = self._embed(query)
+        similarities = [
+            np.dot(query_vec, stored) / (np.linalg.norm(query_vec) * np.linalg.norm(stored))
+            for stored in self._embeddings
         ]
-        idx = int(np.argmax(sims))
-        if sims[idx] >= self.threshold:
-            return self._answers[idx]
+        best_idx = int(np.argmax(similarities))
+        if similarities[best_idx] >= self.threshold:
+            return self._answers[best_idx]
         return None
-    
-        raise NotImplementedError("TODO 5: implementar SemanticCache.get()")
 
     def put(self, query: str, answer: str) -> None:
         self._queries.append(query)
